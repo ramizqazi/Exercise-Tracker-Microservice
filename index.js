@@ -98,19 +98,21 @@ app.get("/api/users/:_id/logs", function (req, res) {
       if (limit) {
         logs = logs.splice(0, Number(limit));
       }
+      let count = logs.length;
 
-      // Format date in the log array
-      logs = logs.map((log) => ({
-        description: log.description,
-        duration: log.duration,
-        date: new Date(log.date).toDateString(),
-      }));
+      const logsList = logs.map((exercise) => {
+        return {
+          description: exercise.description,
+          duration: exercise.duration,
+          date: exercise.date,
+        };
+      });
 
-      res.json({
-        _id: user._id,
-        username: user.username,
-        count: logs.length,
-        log: logs,
+      return res.json({
+        username: username,
+        count: count,
+        _id: _id,
+        log: logsList,
       });
     })
     .catch((err) => {
