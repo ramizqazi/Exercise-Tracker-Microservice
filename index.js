@@ -140,10 +140,7 @@ app.post('/api/users/:_id/exercises', function (req, res) {
       res.json({
         _id: user._id,
         username: user.username,
-        description: log.description,
-        duration: log.duration,
-        date: log.date,
-        _exerciseId: log._id,
+        exercise: user?.log
       });
     })
     .catch((e) => {
