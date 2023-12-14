@@ -109,7 +109,7 @@ app.get("/api/users/:_id/logs", function (req, res) {
       });
 
       return res.json({
-        username: username,
+        username: user?.username,
         count: count,
         _id: _id,
         log: logsList,
