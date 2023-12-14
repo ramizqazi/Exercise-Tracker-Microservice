@@ -1,90 +1,102 @@
-require('dotenv').config();
-const express = require('express');
+require("dotenv").config();
+const express = require("express");
 const app = express();
-const cors = require('cors');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const moment = require('moment');
+const cors = require("cors");
+const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
+const moment = require("moment");
 
-mongoose.connect("mongodb+srv://ramiz:takkansix123@panaverse-backend-by-ra.sjl8l5i.mongodb.net/?retryWrites=true&w=majority", { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(
+  "mongodb+srv://ramiz:takkansix123@panaverse-backend-by-ra.sjl8l5i.mongodb.net/?retryWrites=true&w=majority",
+  { useNewUrlParser: true, useUnifiedTopology: true }
+);
 
 const Schema = mongoose.Schema;
 let UserSchema = new Schema({
   username: String,
-  log: [{
-    description: String,
-    duration: Number,
-    date: String,
-  }]
+  log: [
+    {
+      description: String,
+      duration: Number,
+      date: String,
+    },
+  ],
 });
 
 let User = mongoose.model("Users", UserSchema);
 
 app.use(cors());
-app.use(express.static('public'));
+app.use(express.static("public"));
 app.use(bodyParser.urlencoded({ extended: true }));
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/views/index.html');
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/views/index.html");
 });
 
 // ADD USER
-app.post('/api/users', function (req, res) {
+app.post("/api/users", function (req, res) {
   const username = req.body.username;
 
   if (!username) {
-    res.json({ error: 'Invalid username' });
+    res.json({ error: "Invalid username" });
     return;
   }
 
   const user = new User({ username, log: [] });
 
-  user.save().then((data) => {
-    res.json({ username: data.username, _id: data._id });
-  }).catch(err => {
-    console.log(err);
-    res.json({ error: 'Error creating user' });
-  });
+  user
+    .save()
+    .then((data) => {
+      res.json({ username: data.username, _id: data._id });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.json({ error: "Error creating user" });
+    });
 });
 
 // GET USERS
-app.get('/api/users', function (req, res) {
+app.get("/api/users", function (req, res) {
   const users = [];
 
-  User.find().then((data) => {
-    data.forEach((user) => users.push({ _id: user._id, username: user.username }));
-  }).catch(err => {
-    console.log(err);
-    res.json({ error: 'Error fetching users' });
-  }).finally(() => {
-    res.json(users);
-  });
+  User.find()
+    .then((data) => {
+      data.forEach((user) =>
+        users.push({ _id: user._id, username: user.username })
+      );
+    })
+    .catch((err) => {
+      console.log(err);
+      res.json({ error: "Error fetching users" });
+    })
+    .finally(() => {
+      res.json(users);
+    });
 });
 
 // GET USER LOGS
-app.get('/api/users/:_id/logs', function (req, res) {
+app.get("/api/users/:_id/logs", function (req, res) {
   const { _id } = req.params;
   const { from, to, limit } = req.query;
 
   User.findById(_id)
     .then((user) => {
       if (!user) {
-        return res.json({ error: 'User not found' });
+        return res.json({ error: "User not found" });
       }
 
       let logs = user.log || [];
 
       // Filter logs based on 'from' and 'to' dates
       if (from) {
-        logs = logs.filter((log) => moment(log.date, 'YYYY-MM-DD').isSameOrAfter(moment(from), 'day'));
+        const fromDate = new Date(from);
+        logs = logs.filter((exercise) => new Date(exercise.date) >= fromDate);
       }
-
       if (to) {
-        logs = logs.filter((log) => moment(log.date, 'YYYY-MM-DD').isSameOrBefore(moment(to), 'day'));
+        const toDate = new Date(to);
+        logs = logs.filter((exercise) => new Date(exercise.date) <= toDate);
       }
-
-      // Limit the number of logs if 'limit' is provided
       if (limit) {
-        logs = logs.slice(0, parseInt(limit, 10));
+        logs = logs.splice(0, Number(limit));
       }
 
       // Format date in the log array
@@ -108,12 +120,12 @@ app.get('/api/users/:_id/logs', function (req, res) {
 });
 
 // ADD LOG
-app.post('/api/users/:_id/exercises', function (req, res) {
+app.post("/api/users/:_id/exercises", function (req, res) {
   const { _id } = req.params;
   const { description, duration, date } = req.body;
 
   if (!description || !duration) {
-    res.json({ error: 'Invalid Request' });
+    res.json({ error: "Invalid Request" });
     return;
   }
 
@@ -124,7 +136,9 @@ app.post('/api/users/:_id/exercises', function (req, res) {
         log: {
           description: description,
           duration: Number(duration),
-          date: date ? new Date(date).toDateString() : new Date().toDateString(),
+          date: date
+            ? new Date(date).toDateString()
+            : new Date().toDateString(),
         },
       },
     },
@@ -138,9 +152,11 @@ app.post('/api/users/:_id/exercises', function (req, res) {
       const log = user.log[user.log.length - 1];
 
       res.json({
-        _id: user._id,
-        username: user.username,
-        exercise: user?.log
+        _id: _id,
+        username: user?.username,
+        date: log.date,
+        duration: log.duration,
+        description: log.description,
       });
     })
     .catch((e) => {
@@ -149,5 +165,5 @@ app.post('/api/users/:_id/exercises', function (req, res) {
 });
 
 const listener = app.listen(process.env.PORT || 3000, () => {
-  console.log('Your app is listening on port ' + listener.address().port);
+  console.log("Your app is listening on port " + listener.address().port);
 });
